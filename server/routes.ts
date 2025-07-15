@@ -8,8 +8,20 @@ import {
   insertOrderSchema,
   insertCartItemSchema,
   insertWishlistItemSchema,
+  updateUserProfileSchema,
 } from "@shared/schema";
 import { z } from "zod";
+import Stripe from "stripe";
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+import { sendOrderConfirmation, sendOrderStatusUpdate } from "./sendgrid";
+
+// Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2025-06-30.basil",
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -236,15 +248,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const order = await storage.createOrder(
         { ...orderData, userId },
-        items.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-        }))
+        items
       );
 
       // Clear cart after successful order
       await storage.clearCart(userId);
+
+      // Send order confirmation email
+      try {
+        const user = await storage.getUser(userId);
+        if (user) {
+          const orderWithItems = await storage.getOrderById(order.id);
+          if (orderWithItems) {
+            await sendOrderConfirmation(orderWithItems, user);
+          }
+        }
+      } catch (emailError) {
+        console.error('Failed to send order confirmation email:', emailError);
+      }
 
       res.json(order);
     } catch (error) {
@@ -265,7 +286,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const { status } = req.body;
 
+      // Get current order for comparison
+      const currentOrder = await storage.getOrderById(id);
+      if (!currentOrder) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      const oldStatus = currentOrder.status;
       const order = await storage.updateOrderStatus(id, status);
+
+      // Send status update email
+      try {
+        const user = await storage.getUser(order.userId);
+        if (user && oldStatus !== status) {
+          await sendOrderStatusUpdate(order, user, oldStatus!, status);
+        }
+      } catch (emailError) {
+        console.error('Failed to send order status update email:', emailError);
+      }
+
       res.json(order);
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -363,6 +402,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error removing from wishlist:", error);
       res.status(500).json({ message: "Failed to remove from wishlist" });
+    }
+  });
+
+  // User profile routes
+  app.get("/api/profile", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
+  app.put("/api/profile", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profileData = updateUserProfileSchema.parse(req.body);
+      
+      const user = await storage.updateUserProfile(userId, profileData);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
+  // Stripe payment routes
+  app.post("/api/create-payment-intent", isAuthenticated, async (req, res) => {
+    try {
+      const { amount } = req.body;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: "usd",
+        metadata: {
+          userId: (req.user as any).claims.sub,
+        },
+      });
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // PayPal payment routes
+  app.get("/api/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/api/paypal/order", async (req, res) => {
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
+  });
+
+  // Inventory management routes
+  app.get("/api/admin/inventory/low-stock", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const lowStockProducts = await storage.getLowStockProducts();
+      res.json(lowStockProducts);
+    } catch (error) {
+      console.error("Error fetching low stock products:", error);
+      res.status(500).json({ message: "Failed to fetch low stock products" });
+    }
+  });
+
+  app.get("/api/admin/inventory/movements/:productId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const productId = parseInt(req.params.productId);
+      const movements = await storage.getInventoryMovements(productId);
+      res.json(movements);
+    } catch (error) {
+      console.error("Error fetching inventory movements:", error);
+      res.status(500).json({ message: "Failed to fetch inventory movements" });
+    }
+  });
+
+  app.post("/api/admin/inventory/adjust", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { productId, quantity, reason } = req.body;
+      
+      await storage.updateProductStock(productId, quantity, 'adjustment', reason);
+      res.json({ message: "Inventory adjusted successfully" });
+    } catch (error) {
+      console.error("Error adjusting inventory:", error);
+      res.status(500).json({ message: "Failed to adjust inventory" });
     }
   });
 

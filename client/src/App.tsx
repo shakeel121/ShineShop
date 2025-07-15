@@ -10,10 +10,13 @@ import Home from "@/pages/home";
 import Products from "@/pages/products";
 import ProductDetail from "@/pages/product-detail";
 import Cart from "@/pages/cart";
+import Checkout from "@/pages/checkout";
+import Profile from "@/pages/profile";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminProducts from "@/pages/admin/products";
 import AdminOrders from "@/pages/admin/orders";
 import AdminUsers from "@/pages/admin/users";
+import AdminInventory from "@/pages/admin/inventory";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -28,10 +31,13 @@ function Router() {
           <Route path="/products" component={Products} />
           <Route path="/products/:slug" component={ProductDetail} />
           <Route path="/cart" component={Cart} />
+          <Route path="/checkout" component={Checkout} />
+          <Route path="/profile" component={Profile} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/products" component={AdminProducts} />
           <Route path="/admin/orders" component={AdminOrders} />
           <Route path="/admin/users" component={AdminUsers} />
+          <Route path="/admin/inventory" component={AdminInventory} />
         </>
       )}
       <Route component={NotFound} />

@@ -84,14 +84,18 @@ export default function Navbar() {
 
             {isAuthenticated ? (
               <div className="flex items-center space-x-2">
-                {user?.profileImageUrl && (
-                  <img
-                    src={user.profileImageUrl}
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                )}
-                <span className="text-sm text-gray-700">{user?.firstName || user?.email}</span>
+                <Link href="/profile">
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    {user?.profileImageUrl && (
+                      <img
+                        src={user.profileImageUrl}
+                        alt="Profile"
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    )}
+                    <User className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <Button variant="ghost" size="sm" asChild>
                   <a href="/api/logout">Logout</a>
                 </Button>
@@ -142,6 +146,12 @@ export default function Navbar() {
                       )}
                       <span className="text-sm text-gray-700">{user?.firstName || user?.email}</span>
                     </div>
+                    <Link href="/profile">
+                      <a className="flex items-center space-x-2 text-gray-700 hover:text-gold transition duration-200 mb-2">
+                        <User className="h-4 w-4" />
+                        <span>Profile</span>
+                      </a>
+                    </Link>
                     <Link href="/cart">
                       <a className="flex items-center space-x-2 text-gray-700 hover:text-gold transition duration-200 mb-2">
                         <ShoppingCart className="h-4 w-4" />

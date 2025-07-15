@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   Users,
   BarChart3,
+  Archive,
 } from "lucide-react";
 
 const sidebarItems = [
@@ -28,6 +29,11 @@ const sidebarItems = [
     title: "Users",
     href: "/admin/users",
     icon: Users,
+  },
+  {
+    title: "Inventory",
+    href: "/admin/inventory",
+    icon: Archive,
   },
   {
     title: "Analytics",
