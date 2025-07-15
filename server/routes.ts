@@ -16,12 +16,16 @@ import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./payp
 import { sendOrderConfirmation, sendOrderStatusUpdate } from "./sendgrid";
 
 // Initialize Stripe
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+const STRIPE_ENABLED = !!process.env.STRIPE_SECRET_KEY;
+let stripe: Stripe | null = null;
+
+if (STRIPE_ENABLED) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2025-06-30.basil",
+  });
+} else {
+  console.warn("STRIPE_SECRET_KEY not set - Stripe payment functionality will be disabled");
 }
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-06-30.basil",
-});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -438,6 +442,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe payment routes
   app.post("/api/create-payment-intent", isAuthenticated, async (req, res) => {
     try {
+      if (!STRIPE_ENABLED || !stripe) {
+        return res.status(503).json({ message: "Stripe payment processing is not available" });
+      }
+
       const { amount } = req.body;
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
