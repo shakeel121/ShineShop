@@ -104,6 +104,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+      }
+      
       const product = await storage.getProductById(id);
       
       if (!product) {
@@ -218,6 +223,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       const id = parseInt(req.params.id);
       
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid order ID" });
+      }
+      
       const order = await storage.getOrderById(id);
       
       if (!order) {
@@ -233,6 +242,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching order:", error);
       res.status(500).json({ message: "Failed to fetch order" });
+    }
+  });
+
+  // Public order tracking endpoint
+  app.get("/api/orders/track/:orderNumber", async (req, res) => {
+    try {
+      const { orderNumber } = req.params;
+      const orders = await storage.getOrders({ limit: 1000 });
+      const order = orders.orders.find(o => o.orderNumber === orderNumber);
+      
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      // Return limited information for public tracking
+      res.json({
+        orderNumber: order.orderNumber,
+        status: order.status,
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        shippedAt: order.shippedAt,
+        deliveredAt: order.deliveredAt,
+        trackingNumber: order.trackingNumber,
+        items: order.items,
+        paymentMethod: order.paymentMethod
+      });
+    } catch (error) {
+      console.error("Error tracking order:", error);
+      res.status(500).json({ message: "Failed to track order" });
     }
   });
 
@@ -331,7 +369,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/cart", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const cartItemData = insertCartItemSchema.parse(req.body);
+      const cartItemData = insertCartItemSchema.parse({
+        ...req.body,
+        userId: userId
+      });
       
       const cartItem = await storage.addToCart({
         ...cartItemData,

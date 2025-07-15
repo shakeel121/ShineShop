@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Search, ShoppingCart, User, Heart } from "lucide-react";
+import { Menu, Search, ShoppingCart, User, Heart, Package } from "lucide-react";
 
 export default function Navbar() {
   const { user, isAuthenticated } = useAuth();
@@ -63,6 +63,12 @@ export default function Navbar() {
               <Search className="h-4 w-4" />
             </Button>
 
+            <Link href="/track">
+              <Button variant="ghost" size="sm">
+                <Package className="h-4 w-4" />
+              </Button>
+            </Link>
+
             {isAuthenticated && (
               <>
                 <Button variant="ghost" size="sm">
@@ -116,21 +122,15 @@ export default function Navbar() {
             </SheetTrigger>
             <SheetContent side="right" className="w-80">
               <div className="flex flex-col space-y-4 mt-8">
-                <Link href="/">
-                  <a className="text-lg font-semibold text-gray-700 hover:text-gold transition duration-200">
-                    Home
-                  </a>
+                <Link href="/" className="text-lg font-semibold text-gray-700 hover:text-gold transition duration-200">
+                  Home
                 </Link>
-                <Link href="/products">
-                  <a className="text-lg font-semibold text-gray-700 hover:text-gold transition duration-200">
-                    Collections
-                  </a>
+                <Link href="/products" className="text-lg font-semibold text-gray-700 hover:text-gold transition duration-200">
+                  Collections
                 </Link>
                 {user?.isAdmin && (
-                  <Link href="/admin">
-                    <a className="text-lg font-semibold text-gray-700 hover:text-gold transition duration-200">
-                      Admin
-                    </a>
+                  <Link href="/admin" className="text-lg font-semibold text-gray-700 hover:text-gold transition duration-200">
+                    Admin
                   </Link>
                 )}
 
@@ -146,17 +146,13 @@ export default function Navbar() {
                       )}
                       <span className="text-sm text-gray-700">{user?.firstName || user?.email}</span>
                     </div>
-                    <Link href="/profile">
-                      <a className="flex items-center space-x-2 text-gray-700 hover:text-gold transition duration-200 mb-2">
-                        <User className="h-4 w-4" />
-                        <span>Profile</span>
-                      </a>
+                    <Link href="/profile" className="flex items-center space-x-2 text-gray-700 hover:text-gold transition duration-200 mb-2">
+                      <User className="h-4 w-4" />
+                      <span>Profile</span>
                     </Link>
-                    <Link href="/cart">
-                      <a className="flex items-center space-x-2 text-gray-700 hover:text-gold transition duration-200 mb-2">
-                        <ShoppingCart className="h-4 w-4" />
-                        <span>Cart ({cartCount})</span>
-                      </a>
+                    <Link href="/cart" className="flex items-center space-x-2 text-gray-700 hover:text-gold transition duration-200 mb-2">
+                      <ShoppingCart className="h-4 w-4" />
+                      <span>Cart ({cartCount})</span>
                     </Link>
                     <Button variant="outline" size="sm" className="w-full" asChild>
                       <a href="/api/logout">Logout</a>

@@ -18,14 +18,16 @@ import AdminProducts from "@/pages/admin/products";
 import AdminOrders from "@/pages/admin/orders";
 import AdminUsers from "@/pages/admin/users";
 import AdminInventory from "@/pages/admin/inventory";
+import OrderTracking from "@/pages/order-tracking";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
     <Switch>
-      {/* Admin login route - accessible without authentication */}
+      {/* Public routes - accessible without authentication */}
       <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/track" component={OrderTracking} />
       
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
@@ -42,6 +44,7 @@ function Router() {
           <Route path="/admin/orders" component={AdminOrders} />
           <Route path="/admin/users" component={AdminUsers} />
           <Route path="/admin/inventory" component={AdminInventory} />
+          <Route path="/track" component={OrderTracking} />
         </>
       )}
       <Route component={NotFound} />

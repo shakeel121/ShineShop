@@ -14,7 +14,10 @@ export default function Landing() {
               Luxe Jewelry
             </h1>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" asChild>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/track">Track Order</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
                 <Link href="/admin/login">Admin</Link>
               </Button>
               <Button asChild>
