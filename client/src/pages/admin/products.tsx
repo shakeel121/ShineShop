@@ -482,6 +482,49 @@ export default function AdminProducts() {
                         </div>
                       </div>
 
+                      <div>
+                        <Label htmlFor="images">Product Images</Label>
+                        <div className="space-y-2">
+                          {formData.images.map((image, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <Input
+                                value={image}
+                                onChange={(e) => {
+                                  const newImages = [...formData.images];
+                                  newImages[index] = e.target.value;
+                                  setFormData({ ...formData, images: newImages });
+                                }}
+                                placeholder="Enter image URL"
+                                className="flex-1"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  const newImages = formData.images.filter((_, i) => i !== index);
+                                  setFormData({ ...formData, images: newImages });
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setFormData({ ...formData, images: [...formData.images, ""] })}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Image URL
+                          </Button>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Add image URLs for your product. You can use links to images hosted online.
+                        </p>
+                      </div>
+
                       <div className="flex items-center space-x-6">
                         <div className="flex items-center space-x-2">
                           <Switch

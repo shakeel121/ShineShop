@@ -281,7 +281,21 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(product: InsertProduct): Promise<Product> {
     try {
-      const [newProduct] = await db.insert(products).values(product).returning();
+      // Ensure unique slug
+      let slug = product.slug;
+      let counter = 1;
+      while (true) {
+        const existing = await this.getProductBySlug(slug);
+        if (!existing) break;
+        slug = `${product.slug}-${counter}`;
+        counter++;
+      }
+      
+      const [newProduct] = await db.insert(products).values({
+        ...product,
+        slug,
+        images: product.images || []
+      }).returning();
       return newProduct;
     } catch (error) {
       console.error('Error creating product:', error);
