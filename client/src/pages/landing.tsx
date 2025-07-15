@@ -13,9 +13,14 @@ export default function Landing() {
             <h1 className="text-2xl font-playfair font-bold text-gold">
               Luxe Jewelry
             </h1>
-            <Button asChild>
-              <a href="/api/login">Login</a>
-            </Button>
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" asChild>
+                <Link href="/admin/login">Admin</Link>
+              </Button>
+              <Button asChild>
+                <a href="/api/login">Login</a>
+              </Button>
+            </div>
           </div>
         </div>
       </header>

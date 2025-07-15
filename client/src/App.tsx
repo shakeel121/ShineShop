@@ -12,6 +12,7 @@ import ProductDetail from "@/pages/product-detail";
 import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout";
 import Profile from "@/pages/profile";
+import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminProducts from "@/pages/admin/products";
 import AdminOrders from "@/pages/admin/orders";
@@ -23,6 +24,9 @@ function Router() {
 
   return (
     <Switch>
+      {/* Admin login route - accessible without authentication */}
+      <Route path="/admin/login" component={AdminLogin} />
+      
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
