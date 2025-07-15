@@ -147,7 +147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const productData = insertProductSchema.parse(req.body);
+      // Parse and validate the product data
+      const productData = insertProductSchema.parse({
+        ...req.body,
+        images: req.body.images || [],
+        stock: req.body.stock ? parseInt(req.body.stock) : 0,
+        categoryId: req.body.categoryId ? parseInt(req.body.categoryId) : null,
+      });
       const product = await storage.createProduct(productData);
       res.json(product);
     } catch (error) {
@@ -278,7 +284,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       
-      const orderSchema = insertOrderSchema.extend({
+      const orderSchema = z.object({
+        totalAmount: z.string(),
+        subtotal: z.string(),
+        tax: z.string().optional(),
+        shippingCost: z.string().optional(),
+        discount: z.string().optional(),
+        couponCode: z.string().optional(),
+        paymentMethod: z.string().optional(),
+        shippingAddress: z.string().optional(),
+        billingAddress: z.string().optional(),
         items: z.array(z.object({
           productId: z.number(),
           quantity: z.number(),
@@ -289,7 +304,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { items, ...orderData } = orderSchema.parse(req.body);
       
       const order = await storage.createOrder(
-        { ...orderData, userId },
+        { 
+          ...orderData, 
+          userId,
+          status: "pending",
+          tax: orderData.tax || "0.00",
+          shippingCost: orderData.shippingCost || "0.00",
+          discount: orderData.discount || "0.00"
+        },
         items
       );
 

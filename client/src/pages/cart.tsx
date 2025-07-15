@@ -126,10 +126,12 @@ export default function Cart() {
 
       await apiRequest("POST", "/api/orders", {
         totalAmount: totalAmount.toFixed(2),
-        shippingAddress,
-        paymentStatus: "pending",
+        subtotal: subtotal.toFixed(2),
+        tax: tax.toFixed(2),
+        shippingCost: shipping.toFixed(2),
+        discount: "0.00",
+        shippingAddress: JSON.stringify(shippingAddress),
         paymentMethod: "card",
-        status: "pending",
         items: orderItems,
       });
     },

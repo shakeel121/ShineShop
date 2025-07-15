@@ -280,8 +280,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db.insert(products).values(product).returning();
-    return newProduct;
+    try {
+      const [newProduct] = await db.insert(products).values(product).returning();
+      return newProduct;
+    } catch (error) {
+      console.error('Error creating product:', error);
+      throw error;
+    }
   }
 
   async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product> {
