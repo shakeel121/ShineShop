@@ -1,53 +1,37 @@
 import {
-  pgTable,
+  sqliteTable,
   text,
-  varchar,
-  timestamp,
-  jsonb,
-  index,
-  serial,
   integer,
-  decimal,
-  boolean,
-} from "drizzle-orm/pg-core";
+  real,
+  index,
+} from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table (required for Replit Auth)
-export const sessions = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)],
-);
-
 // User storage table (required for Replit Auth)
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  phone: varchar("phone"),
-  dateOfBirth: timestamp("date_of_birth"),
-  gender: varchar("gender", { length: 10 }),
-  address: jsonb("address").$type<{
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey().notNull(),
+  email: text("email").unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
+  phone: text("phone"),
+  dateOfBirth: text("date_of_birth"),
+  gender: text("gender"),
+  address: text("address", { mode: "json" }).$type<{
     street: string;
     city: string;
     state: string;
     zipCode: string;
     country: string;
   }>(),
-  isAdmin: boolean("is_admin").default(false),
-  stripeCustomerId: varchar("stripe_customer_id"),
-  stripeSubscriptionId: varchar("stripe_subscription_id"),
-  emailVerified: boolean("email_verified").default(false),
-  phoneVerified: boolean("phone_verified").default(false),
-  preferences: jsonb("preferences").$type<{
+  isAdmin: integer("is_admin", { mode: "boolean" }).default(false),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  emailVerified: integer("email_verified", { mode: "boolean" }).default(false),
+  phoneVerified: integer("phone_verified", { mode: "boolean" }).default(false),
+  preferences: text("preferences", { mode: "json" }).$type<{
     newsletter: boolean;
     promotions: boolean;
     orderUpdates: boolean;
@@ -58,60 +42,60 @@ export const users = pgTable("users", {
     orderUpdates: true,
     theme: "light",
   }),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: text("created_at").default(new Date().toISOString()),
+  updatedAt: text("updated_at").default(new Date().toISOString()),
 });
 
 // Product categories
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 100 }).notNull(),
-  slug: varchar("slug", { length: 100 }).notNull().unique(),
+export const categories = sqliteTable("categories", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
   description: text("description"),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(new Date().toISOString()),
 });
 
 // Products table
-export const products = pgTable("products", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  slug: varchar("slug", { length: 255 }).notNull().unique(),
+export const products = sqliteTable("products", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
   description: text("description"),
   shortDescription: text("short_description"),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  comparePrice: decimal("compare_price", { precision: 10, scale: 2 }),
-  sku: varchar("sku", { length: 100 }),
+  price: text("price").notNull(),
+  comparePrice: text("compare_price"),
+  sku: text("sku"),
   stock: integer("stock").default(0),
   lowStockThreshold: integer("low_stock_threshold").default(5),
   reservedStock: integer("reserved_stock").default(0),
-  trackInventory: boolean("track_inventory").default(true),
-  allowBackorder: boolean("allow_backorder").default(false),
-  images: jsonb("images").$type<string[]>().default([]),
+  trackInventory: integer("track_inventory", { mode: "boolean" }).default(true),
+  allowBackorder: integer("allow_backorder", { mode: "boolean" }).default(false),
+  images: text("images", { mode: "json" }).$type<string[]>().default([]),
   categoryId: integer("category_id").references(() => categories.id),
-  material: varchar("material", { length: 100 }),
-  weight: decimal("weight", { precision: 8, scale: 2 }),
-  dimensions: varchar("dimensions", { length: 255 }),
-  tags: jsonb("tags").$type<string[]>().default([]),
-  metaTitle: varchar("meta_title", { length: 255 }),
+  material: text("material"),
+  weight: text("weight"),
+  dimensions: text("dimensions"),
+  tags: text("tags", { mode: "json" }).$type<string[]>().default([]),
+  metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
-  isActive: boolean("is_active").default(true),
-  isFeatured: boolean("is_featured").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  isFeatured: integer("is_featured", { mode: "boolean" }).default(false),
+  createdAt: text("created_at").default(new Date().toISOString()),
+  updatedAt: text("updated_at").default(new Date().toISOString()),
 });
 
 // Orders table
-export const orders = pgTable("orders", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  orderNumber: varchar("order_number", { length: 50 }).unique().notNull(),
-  status: varchar("status", { length: 50 }).default("pending"),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
-  shippingAmount: decimal("shipping_amount", { precision: 10, scale: 2 }).default("0"),
-  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
-  shippingAddress: jsonb("shipping_address").$type<{
+export const orders = sqliteTable("orders", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id").references(() => users.id).notNull(),
+  orderNumber: text("order_number").unique().notNull(),
+  status: text("status").default("pending"),
+  totalAmount: text("total_amount").notNull(),
+  subtotal: text("subtotal").notNull(),
+  taxAmount: text("tax_amount").default("0"),
+  shippingAmount: text("shipping_amount").default("0"),
+  discountAmount: text("discount_amount").default("0"),
+  shippingAddress: text("shipping_address", { mode: "json" }).$type<{
     name: string;
     address: string;
     city: string;
@@ -119,7 +103,7 @@ export const orders = pgTable("orders", {
     zipCode: string;
     country: string;
   }>(),
-  billingAddress: jsonb("billing_address").$type<{
+  billingAddress: text("billing_address", { mode: "json" }).$type<{
     name: string;
     address: string;
     city: string;
@@ -127,87 +111,87 @@ export const orders = pgTable("orders", {
     zipCode: string;
     country: string;
   }>(),
-  paymentStatus: varchar("payment_status", { length: 50 }).default("pending"),
-  paymentMethod: varchar("payment_method", { length: 50 }),
-  paymentIntentId: varchar("payment_intent_id"),
-  trackingNumber: varchar("tracking_number"),
-  shippedAt: timestamp("shipped_at"),
-  deliveredAt: timestamp("delivered_at"),
+  paymentStatus: text("payment_status").default("pending"),
+  paymentMethod: text("payment_method"),
+  paymentIntentId: text("payment_intent_id"),
+  trackingNumber: text("tracking_number"),
+  shippedAt: text("shipped_at"),
+  deliveredAt: text("delivered_at"),
   notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: text("created_at").default(new Date().toISOString()),
+  updatedAt: text("updated_at").default(new Date().toISOString()),
 });
 
 // Order items table
-export const orderItems = pgTable("order_items", {
-  id: serial("id").primaryKey(),
+export const orderItems = sqliteTable("order_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   orderId: integer("order_id").references(() => orders.id).notNull(),
   productId: integer("product_id").references(() => products.id).notNull(),
   quantity: integer("quantity").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  price: text("price").notNull(),
+  createdAt: text("created_at").default(new Date().toISOString()),
 });
 
 // Cart items table
-export const cartItems = pgTable("cart_items", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
+export const cartItems = sqliteTable("cart_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id").references(() => users.id).notNull(),
   productId: integer("product_id").references(() => products.id).notNull(),
   quantity: integer("quantity").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: text("created_at").default(new Date().toISOString()),
+  updatedAt: text("updated_at").default(new Date().toISOString()),
 });
 
 // Wishlist items table
-export const wishlistItems = pgTable("wishlist_items", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
+export const wishlistItems = sqliteTable("wishlist_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id").references(() => users.id).notNull(),
   productId: integer("product_id").references(() => products.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(new Date().toISOString()),
 });
 
 // Inventory movements table for advanced inventory management
-export const inventoryMovements = pgTable("inventory_movements", {
-  id: serial("id").primaryKey(),
+export const inventoryMovements = sqliteTable("inventory_movements", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").references(() => products.id).notNull(),
-  type: varchar("type", { length: 50 }).notNull(), // 'in', 'out', 'adjustment', 'reserved', 'released'
+  type: text("type").notNull(), // 'in', 'out', 'adjustment', 'reserved', 'released'
   quantity: integer("quantity").notNull(),
-  reason: varchar("reason", { length: 255 }),
-  reference: varchar("reference", { length: 255 }), // order id, adjustment id, etc.
+  reason: text("reason"),
+  reference: text("reference"), // order id, adjustment id, etc.
   notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(new Date().toISOString()),
 });
 
 // Product reviews table
-export const productReviews = pgTable("product_reviews", {
-  id: serial("id").primaryKey(),
+export const productReviews = sqliteTable("product_reviews", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").references(() => products.id).notNull(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").references(() => users.id).notNull(),
   rating: integer("rating").notNull(), // 1-5 stars
-  title: varchar("title", { length: 255 }),
+  title: text("title"),
   comment: text("comment"),
-  isVerified: boolean("is_verified").default(false),
-  isApproved: boolean("is_approved").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  isVerified: integer("is_verified", { mode: "boolean" }).default(false),
+  isApproved: integer("is_approved", { mode: "boolean" }).default(false),
+  createdAt: text("created_at").default(new Date().toISOString()),
+  updatedAt: text("updated_at").default(new Date().toISOString()),
 });
 
 // Coupons table for discounts
-export const coupons = pgTable("coupons", {
-  id: serial("id").primaryKey(),
-  code: varchar("code", { length: 50 }).unique().notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
+export const coupons = sqliteTable("coupons", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").unique().notNull(),
+  name: text("name").notNull(),
   description: text("description"),
-  type: varchar("type", { length: 20 }).notNull(), // 'percentage', 'fixed'
-  value: decimal("value", { precision: 10, scale: 2 }).notNull(),
-  minimumAmount: decimal("minimum_amount", { precision: 10, scale: 2 }),
+  type: text("type").notNull(), // 'percentage', 'fixed'
+  value: text("value").notNull(),
+  minimumAmount: text("minimum_amount"),
   maxUses: integer("max_uses"),
   usedCount: integer("used_count").default(0),
-  isActive: boolean("is_active").default(true),
-  startsAt: timestamp("starts_at"),
-  expiresAt: timestamp("expires_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  startsAt: text("starts_at"),
+  expiresAt: text("expires_at"),
+  createdAt: text("created_at").default(new Date().toISOString()),
+  updatedAt: text("updated_at").default(new Date().toISOString()),
 });
 
 // Relations

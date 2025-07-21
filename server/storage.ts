@@ -33,6 +33,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, ilike, sql, desc, asc } from "drizzle-orm";
+import { like } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -201,8 +202,8 @@ export class DatabaseStorage implements IStorage {
     if (filters?.search) {
       conditions.push(
         or(
-          ilike(products.name, `%${filters.search}%`),
-          ilike(products.description, `%${filters.search}%`)
+          like(products.name, `%${filters.search}%`),
+          like(products.description, `%${filters.search}%`)
         )
       );
     }
