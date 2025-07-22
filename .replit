@@ -32,5 +32,9 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
+args = "npm run db:push"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
